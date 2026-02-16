@@ -125,7 +125,7 @@ export default function ChatInterface() {
                 Neue Suche
               </button>
               <div className="flex-1">
-                <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+                <SearchBar onSearch={handleSearch} isLoading={isLoading} compact initialQuery={result?.searchTerm} />
               </div>
             </div>
           </motion.header>

@@ -16,19 +16,27 @@ const POPULAR_SEARCHES = [
 interface SearchBarProps {
   onSearch: (query: string) => void;
   isLoading?: boolean;
+  compact?: boolean;
+  initialQuery?: string;
 }
 
-export default function SearchBar({ onSearch, isLoading = false }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+export default function SearchBar({ onSearch, isLoading = false, compact = false, initialQuery = '' }: SearchBarProps) {
+  const [query, setQuery] = useState(initialQuery);
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
+    setQuery(initialQuery);
+  }, [initialQuery]);
+
+  useEffect(() => {
+    if (!compact) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [compact]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +62,7 @@ export default function SearchBar({ onSearch, isLoading = false }: SearchBarProp
           animate={isFocused ? { scale: 1.02 } : { scale: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <Search className="absolute left-5 h-5 w-5 text-zinc-400" />
+          <Search className={`absolute h-5 w-5 text-zinc-400 ${compact ? 'left-3 h-4 w-4' : 'left-5'}`} />
           <input
             ref={inputRef}
             type="text"
@@ -63,13 +71,17 @@ export default function SearchBar({ onSearch, isLoading = false }: SearchBarProp
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder="Was suchst du?"
-            className="w-full rounded-full bg-transparent py-4 pl-14 pr-36 text-lg outline-none placeholder:text-zinc-400 dark:text-white"
+            className={`w-full rounded-full bg-transparent outline-none placeholder:text-zinc-400 dark:text-white ${
+              compact ? 'py-2.5 pl-10 pr-28 text-sm' : 'py-4 pl-14 pr-36 text-lg'
+            }`}
             disabled={isLoading}
           />
           <motion.button
             type="submit"
             disabled={!query.trim() || isLoading}
-            className="absolute right-2 flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className={`absolute right-2 flex items-center gap-2 rounded-full bg-blue-600 font-medium text-white transition-all hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed ${
+              compact ? 'px-3 py-1.5 text-xs' : 'px-5 py-2.5 text-sm'
+            }`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -85,6 +97,7 @@ export default function SearchBar({ onSearch, isLoading = false }: SearchBarProp
         </motion.div>
       </form>
 
+      {!compact && (
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -106,6 +119,7 @@ export default function SearchBar({ onSearch, isLoading = false }: SearchBarProp
           ))}
         </motion.div>
       </AnimatePresence>
+      )}
     </div>
   );
 }
