@@ -33,6 +33,24 @@ export default function SucheChat() {
 
     async function fetchQuestions() {
       try {
+        // Validate query first
+        const validateRes = await fetch('/api/validate-query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        });
+
+        if (validateRes.ok) {
+          const validation = await validateRes.json();
+          if (!validation.valid) {
+            setError(
+              'Das können wir leider nicht vergleichen. Probiere z.B. „Günstiges Girokonto" oder „Beste Haftpflichtversicherung".'
+            );
+            setIsLoadingQuestions(false);
+            return;
+          }
+        }
+
         const res = await fetch('/api/generate-questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

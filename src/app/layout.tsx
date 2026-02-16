@@ -3,7 +3,9 @@ import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { AuthProvider } from '@/components/AuthProvider';
 import ThemeToggle from '@/components/ThemeToggle';
+import AuthButton from '@/components/AuthButton';
 import './globals.css';
 
 const inter = Inter({
@@ -39,10 +41,13 @@ export default function RootLayout({
     <html lang="de" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
-          <ThemeToggle />
-          {children}
-          <Analytics />
-          <SpeedInsights />
+          <AuthProvider>
+            <ThemeToggle />
+            <AuthButton />
+            {children}
+            <Analytics />
+            <SpeedInsights />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
