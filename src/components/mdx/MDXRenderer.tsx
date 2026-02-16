@@ -18,11 +18,23 @@ interface MDXRendererProps {
 }
 
 function fixMDXSyntax(source: string): string {
-  // Fix common AI mistakes: items=[ → items={[, ]} → ]}, etc.
-  return source
-    .replace(/(\w+)=\[/g, '$1={[')
-    .replace(/\](\s*\/?>)/g, ']}$1')
-    .replace(/(\w+)="([^"]*)"(\s*\w+=)/g, '$1="$2"$3'); // ensure proper spacing
+  let fixed = source;
+
+  // Step 1: Wrap array props: prop=[...] → prop={[...]}
+  // Find all prop=[ and track bracket depth to find matching ]
+  fixed = fixed.replace(/(\w+)=\[(?!\{)/g, '$1={[');
+  
+  // Step 2: For every {[ we added, find the matching ] and add }
+  // Simple approach: replace ] followed by certain patterns
+  fixed = fixed.replace(/\]\s*(\/?>)/g, ']}$1');   // ] /> or ] >
+  fixed = fixed.replace(/\]\s+(\w+=)/g, ']} $1');   // ] nextProp=
+  fixed = fixed.replace(/\]\s*\n(\s*\/?>)/g, ']}\n$1'); // ]\n />
+  
+  // Step 3: Handle trailing ] at end of self-closing component lines
+  // Pattern: ] followed by newline then whitespace and /> on next line
+  fixed = fixed.replace(/\]\s*\n(\s*)\//g, ']}\n$1/');
+
+  return fixed;
 }
 
 export async function MDXRenderer({ source }: MDXRendererProps) {

@@ -139,6 +139,19 @@ export async function POST(request: Request) {
 
     const pageData = JSON.parse(content);
 
+    // Fix common AI MDX syntax errors before saving
+    if (pageData.content_mdx) {
+      pageData.content_mdx = pageData.content_mdx
+        // Fix prop=[...] → prop={[...]}
+        .replace(/(\w+)=\[/g, '$1={[')
+        // Fix ] before /> → ]} before />
+        .replace(/\]\s*(\/?>)/g, ']}$1')
+        // Fix ] before next prop → ]} before next prop
+        .replace(/\]\s+(\w+=)/g, ']} $1')
+        // Fix ] at end of line before /> on next line
+        .replace(/\]\s*\n(\s*\/?>)/g, ']}\n$1');
+    }
+
     // Save to Supabase
     const { error: insertError } = await supabase.from('pages').insert({
       slug,
