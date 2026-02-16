@@ -144,10 +144,18 @@ export default function ChatInterface() {
                 transition={{ delay: 0.1, duration: 0.5 }}
                 className="text-center"
               >
-                <h1 className="text-5xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-6xl">
-                  find
-                  <span className="text-blue-600">ius</span>
-                </h1>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.svg"
+                  alt="findius"
+                  className="mx-auto h-14 dark:hidden sm:h-16"
+                />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-dark.svg"
+                  alt="findius"
+                  className="mx-auto hidden h-14 dark:block sm:h-16"
+                />
                 <p className="mt-3 text-lg text-zinc-500 dark:text-zinc-400">
                   Dein smarter Produktvergleich
                 </p>

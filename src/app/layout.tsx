@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   description:
     'Finde die besten Produkte mit KI-gestützter Analyse. Vergleiche Millionen von Amazon-Produkten intelligent.',
   keywords: ['Produktvergleich', 'Amazon', 'KI', 'Produktsuche', 'Bewertungen'],
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
   openGraph: {
     title: 'findius – Dein smarter Produktvergleich',
     description: 'Finde die besten Produkte mit KI-gestützter Analyse.',
