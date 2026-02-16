@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getMDXBySlug, getAllSlugs } from "@/lib/mdx";
 import { MDXRenderer } from "@/components/mdx/MDXRenderer";
+import Comments from "@/components/Comments";
+import PageRating from "@/components/PageRating";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -127,6 +129,9 @@ export default async function VergleichPage({ params }: PageProps) {
       </header>
 
       <MDXRenderer source={content} />
+
+      <PageRating pageSlug={slug} />
+      <Comments pageSlug={slug} />
     </article>
   );
 }

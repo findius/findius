@@ -5,6 +5,8 @@ import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Page } from '@/lib/supabase';
 import { MDXRenderer } from '@/components/mdx/MDXRenderer';
+import Comments from '@/components/Comments';
+import PageRating from '@/components/PageRating';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -100,6 +102,9 @@ export default async function SucheSlugPage({ params }: PageProps) {
       </header>
 
       <MDXRenderer source={page.content_mdx} />
+
+      <PageRating pageSlug={slug} />
+      <Comments pageSlug={slug} />
     </article>
   );
 }
