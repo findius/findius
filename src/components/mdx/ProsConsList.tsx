@@ -20,7 +20,7 @@ export function ProsConsList({ pros = [], cons = [], title }: ProsConsListProps)
           </h5>
           <ul className="space-y-2">
             {pros.map((pro) => (
-              <li key={pro} className="flex items-start gap-2 text-sm">
+              <li key={pro} className="flex items-start gap-2 text-sm text-green-900 dark:text-green-100">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
                 <span>{pro}</span>
               </li>
@@ -34,7 +34,7 @@ export function ProsConsList({ pros = [], cons = [], title }: ProsConsListProps)
           </h5>
           <ul className="space-y-2">
             {cons.map((con) => (
-              <li key={con} className="flex items-start gap-2 text-sm">
+              <li key={con} className="flex items-start gap-2 text-sm text-red-900 dark:text-red-100">
                 <X className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                 <span>{con}</span>
               </li>

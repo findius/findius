@@ -47,8 +47,8 @@ export function ComparisonTable({ items = [], title }: ComparisonTableProps) {
         <h3 className="mb-4 text-xl font-semibold">{title}</h3>
       )}
       {/* Desktop Table */}
-      <div className="hidden overflow-x-auto rounded-lg border md:block">
-        <table className="w-full text-left text-sm">
+      <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+        <table className="w-full text-left text-sm text-foreground">
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="px-4 py-3 font-medium">Anbieter</th>
