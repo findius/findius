@@ -72,6 +72,7 @@ REGELN:
 - Schreibe informativen Fließtext zwischen den Komponenten
 - Verwende KEINE Frontmatter (---) am Anfang
 - Gib REINEN MDX-Inhalt zurück, kein Markdown-Codeblock
+- WICHTIG: JSX-Props mit Arrays/Objekten MÜSSEN in geschweiften Klammern stehen! items={[...]} NICHT items=[...]
 - Verwende realistische Preise und Bewertungen
 - Setze affiliateLink auf "#" (Platzhalter)
 - Generiere auch einen Titel und eine kurze Beschreibung für SEO
