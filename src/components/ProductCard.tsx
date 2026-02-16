@@ -45,7 +45,7 @@ export default function ProductCard({ product, index }: ProductCardProps) {
         rel="noopener noreferrer"
         className="group block h-full"
       >
-        <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-all duration-300 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-800 dark:hover:shadow-blue-900/10">
+        <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-all duration-300 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50 dark:border-zinc-800 dark:bg-[#252729] dark:hover:border-blue-800 dark:hover:shadow-blue-900/10">
           {/* Image */}
           <div className="relative flex items-center justify-center bg-zinc-50 p-6 dark:bg-zinc-800/50">
             {product.imageUrl ? (

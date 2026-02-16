@@ -54,7 +54,7 @@ export default function SearchBar({ onSearch, isLoading = false, compact = false
     <div className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="relative">
         <motion.div
-          className={`relative flex items-center rounded-full border-2 bg-white dark:bg-zinc-900 shadow-lg transition-all duration-300 ${
+          className={`relative flex items-center rounded-full border-2 bg-white dark:bg-[#252729] shadow-lg transition-all duration-300 ${
             isFocused
               ? 'border-blue-500 shadow-blue-100 dark:shadow-blue-900/20'
               : 'border-zinc-200 dark:border-zinc-700'

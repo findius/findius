@@ -114,7 +114,7 @@ export default function ChatInterface() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/80"
+            className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-xl dark:border-zinc-800 dark:bg-[#1D1F20]/90"
           >
             <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 pr-16">
               <div className="flex-1">
