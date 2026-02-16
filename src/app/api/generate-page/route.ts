@@ -16,6 +16,56 @@ function slugify(text: string): string {
     .slice(0, 80);
 }
 
+// --- Affiliate category detection ---
+interface AffiliatePartner {
+  name: string;
+  affiliate_url: string;
+  category: string;
+  subcategory: string | null;
+}
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  depot: ['depot', 'aktien', 'etf', 'sparplan', 'broker', 'wertpapier', 'trading'],
+  kreditkarte: ['kreditkarte', 'credit card', 'visa', 'mastercard'],
+  haftpflicht: ['haftpflicht', 'haftpflichtversicherung'],
+  dsl: ['dsl', 'internet', 'glasfaser', 'breitband', 'wlan', 'router', 'internetanbieter'],
+  strom: ['strom', 'stromanbieter', 'stromvergleich', 'energie', 'stromtarif'],
+  gas: ['gas', 'gasanbieter', 'gasvergleich', 'gastarif'],
+  girokonto: ['girokonto', 'bankkonto', 'konto'],
+  versicherung: ['versicherung', 'versichern'],
+  handy: ['handy', 'smartphone', 'mobilfunk', 'handyvertrag', 'sim'],
+  kredit: ['kredit', 'darlehen', 'finanzierung', 'ratenkredit'],
+  tagesgeld: ['tagesgeld', 'festgeld', 'zinsen', 'sparen'],
+};
+
+function detectCategory(query: string): string | null {
+  const lower = query.toLowerCase();
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some((kw) => lower.includes(kw))) {
+      return category;
+    }
+  }
+  return null;
+}
+
+async function loadAffiliatePartners(category: string | null): Promise<AffiliatePartner[]> {
+  if (!category) return [];
+  const { data } = await supabase
+    .from('affiliate_partners')
+    .select('name, affiliate_url, category, subcategory')
+    .eq('category', category)
+    .eq('is_active', true);
+  return (data as AffiliatePartner[]) || [];
+}
+
+function buildAffiliateContext(partners: AffiliatePartner[]): string {
+  if (partners.length === 0) return '';
+  const list = partners
+    .map((p) => `- ${p.name}: ${p.affiliate_url}${p.subcategory ? ` (${p.subcategory})` : ''}`)
+    .join('\n');
+  return `\n\nVerfügbare Affiliate-Partner (nutze diese echten Links statt "#" für affiliateLink und AffiliateLink href):\n${list}`;
+}
+
 const SYSTEM_PROMPT = `Du bist ein Experte für Vergleichsartikel. Erstelle eine umfassende, informative Vergleichsseite als MDX.
 
 Verfügbare MDX-Komponenten (nutze diese aktiv!):
@@ -74,7 +124,9 @@ REGELN:
 - Gib REINEN MDX-Inhalt zurück, kein Markdown-Codeblock
 - WICHTIG: JSX-Props mit Arrays/Objekten MÜSSEN in geschweiften Klammern stehen! items={[...]} NICHT items=[...]
 - Verwende realistische Preise und Bewertungen
-- Setze affiliateLink auf "#" (Platzhalter)
+- Setze affiliateLink auf "" (leerer String) wenn keine echten Partnerlinks vorhanden sind
+- Wenn keine Affiliate-Partner für das Thema existieren, erstelle trotzdem einen informativen Vergleich
+- Füge in diesem Fall eine InfoBox hinzu: "Für diesen Bereich bieten wir aktuell keine direkten Partnerlinks an."
 - Generiere auch einen Titel und eine kurze Beschreibung für SEO
 
 Antworte im JSON-Format:
@@ -109,6 +161,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ slug: existingPage.slug });
     }
 
+    // Detect category and load affiliate partners
+    const category = detectCategory(query);
+    const affiliatePartners = await loadAffiliatePartners(category);
+    const affiliateContext = buildAffiliateContext(affiliatePartners);
+
     // Build context from answers
     const contextText = answers?.length
       ? `\n\nNutzerpräferenzen:\n${answers
@@ -122,7 +179,7 @@ export async function POST(request: Request) {
         { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
-          content: `Erstelle eine Vergleichsseite zum Thema: "${query}"${contextText}`,
+          content: `Erstelle eine Vergleichsseite zum Thema: "${query}"${contextText}${affiliateContext}`,
         },
       ],
       response_format: { type: 'json_object' },
