@@ -80,7 +80,7 @@ export function ComparisonTable({ items = [], title }: ComparisonTableProps) {
                     <div>
                       <span className="font-medium">{item.name}</span>
                       {index === 0 && (
-                        <Badge variant="secondary" className="ml-2 text-xs">
+                        <Badge className="ml-2 border-green-200 bg-green-100 text-xs text-green-800 dark:border-green-800 dark:bg-green-900/50 dark:text-green-300">
                           Empfehlung
                         </Badge>
                       )}
@@ -101,9 +101,7 @@ export function ComparisonTable({ items = [], title }: ComparisonTableProps) {
                   <StarRating rating={item.rating} />
                 </td>
                 <td className="px-4 py-4">
-                  <AffiliateLink href={item.affiliateLink} className="text-sm">
-                    Zum Anbieter
-                  </AffiliateLink>
+                  <AffiliateLink href={item.affiliateLink} className="text-sm" />
                 </td>
               </tr>
             ))}
@@ -132,7 +130,7 @@ export function ComparisonTable({ items = [], title }: ComparisonTableProps) {
                 )}
                 <span className="font-medium">{item.name}</span>
                 {index === 0 && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge className="border-green-200 bg-green-100 text-xs text-green-800 dark:border-green-800 dark:bg-green-900/50 dark:text-green-300">
                     Empfehlung
                   </Badge>
                 )}
@@ -151,9 +149,7 @@ export function ComparisonTable({ items = [], title }: ComparisonTableProps) {
               ))}
             </ul>
             <div className="mt-3">
-              <AffiliateLink href={item.affiliateLink} className="text-sm">
-                Zum Anbieter
-              </AffiliateLink>
+              <AffiliateLink href={item.affiliateLink} className="text-sm" />
             </div>
           </div>
         ))}
