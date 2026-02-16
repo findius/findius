@@ -1,0 +1,11 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /suche
+Disallow: /api/
+
+# Host
+Host: https://findius.io
+
+# Sitemaps
+Sitemap: https://findius.io/sitemap.xml

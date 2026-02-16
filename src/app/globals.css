@@ -147,3 +147,60 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Article prose styles */
+.mdx-content h2 {
+  @apply mt-10 mb-4 text-2xl font-bold tracking-tight;
+}
+
+.mdx-content h3 {
+  @apply mt-8 mb-3 text-xl font-semibold;
+}
+
+.mdx-content h4 {
+  @apply mt-6 mb-2 text-lg font-semibold;
+}
+
+.mdx-content p {
+  @apply mb-4 leading-7 text-foreground/90;
+}
+
+.mdx-content ul {
+  @apply mb-4 ml-6 list-disc space-y-1;
+}
+
+.mdx-content ol {
+  @apply mb-4 ml-6 list-decimal space-y-1;
+}
+
+.mdx-content li {
+  @apply leading-7;
+}
+
+.mdx-content strong {
+  @apply font-semibold text-foreground;
+}
+
+.mdx-content a {
+  @apply text-primary underline-offset-4 hover:underline;
+}
+
+.mdx-content blockquote {
+  @apply my-6 border-l-4 border-primary/30 pl-4 italic text-muted-foreground;
+}
+
+.mdx-content hr {
+  @apply my-8 border-border;
+}
+
+.mdx-content code {
+  @apply rounded bg-muted px-1.5 py-0.5 text-sm font-mono;
+}
+
+.mdx-content pre {
+  @apply my-4 overflow-x-auto rounded-lg bg-muted p-4;
+}
+
+.mdx-content pre code {
+  @apply bg-transparent p-0;
+}
