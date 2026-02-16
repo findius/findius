@@ -116,14 +116,7 @@ export default function ChatInterface() {
             exit={{ opacity: 0, y: -20 }}
             className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/80"
           >
-            <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-              <button
-                onClick={handleReset}
-                className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Neue Suche
-              </button>
+            <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 pr-16">
               <div className="flex-1">
                 <SearchBar onSearch={handleSearch} isLoading={isLoading} compact initialQuery={result?.searchTerm} />
               </div>
