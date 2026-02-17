@@ -93,7 +93,7 @@ export default function PageRating({ pageSlug }: { pageSlug: string }) {
 
         {!user && (
           <p className="text-xs text-muted-foreground/40">
-            <a href="/auth/login" className="text-primary/70 hover:text-primary hover:underline">Melde dich an</a> um zu bewerten
+            <a href="/login" className="text-primary/70 hover:text-primary hover:underline">Melde dich an</a> um zu bewerten
           </p>
         )}
       </div>
