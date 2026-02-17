@@ -165,10 +165,10 @@ export default function SucheChat() {
           >
             <p className="text-sm text-destructive">{error}</p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => window.location.href = '/'}
               className="mt-3 rounded-lg bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
             >
-              Erneut versuchen
+              Zurück zur Startseite
             </button>
           </motion.div>
         )}
