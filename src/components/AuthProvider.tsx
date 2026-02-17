@@ -9,6 +9,8 @@ const supabase = createBrowserSupabaseClient();
 interface Profile {
   username: string;
   avatar_url: string | null;
+  reputation_points: number;
+  reputation_rank: string;
 }
 
 interface AuthContextType {
@@ -34,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from('profiles')
-      .select('username, avatar_url')
+      .select('username, avatar_url, reputation_points, reputation_rank')
       .eq('id', userId)
       .single();
     return data as Profile | null;
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase
       .from('profiles')
       .insert({ id: userId, username: pendingUsername })
-      .select('username, avatar_url')
+      .select('username, avatar_url, reputation_points, reputation_rank')
       .single();
 
     if (!error && data) {

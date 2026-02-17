@@ -6,6 +6,9 @@ import { getMDXBySlug, getAllSlugs } from "@/lib/mdx";
 import { MDXRenderer } from "@/components/mdx/MDXRenderer";
 import Comments from "@/components/Comments";
 import PageRating from "@/components/PageRating";
+import ReferralBanner from "@/components/ReferralBanner";
+import ReferralTracker from "@/components/ReferralTracker";
+import { Suspense } from "react";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -130,6 +133,8 @@ export default async function VergleichPage({ params }: PageProps) {
 
       <MDXRenderer source={content} />
 
+      <Suspense><ReferralTracker pageSlug={slug} /></Suspense>
+      <ReferralBanner pageSlug={slug} />
       <PageRating pageSlug={slug} />
       <Comments pageSlug={slug} />
     </article>
