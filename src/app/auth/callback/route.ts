@@ -10,5 +10,8 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
+  // Profile creation happens client-side in AuthProvider
+  // (reads pending username from localStorage after SIGNED_IN event)
+
   return NextResponse.redirect(origin);
 }

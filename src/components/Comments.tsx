@@ -16,6 +16,7 @@ interface Comment {
   created_at: string;
   likes_count: number;
   user_liked: boolean;
+  username: string | null;
 }
 
 function timeAgo(dateStr: string): string {
@@ -30,12 +31,12 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('de-DE');
 }
 
-function displayName(email: string) {
-  return email.split('@')[0];
+function displayName(comment: Comment) {
+  return comment.username || comment.user_email.split('@')[0];
 }
 
 export default function Comments({ pageSlug }: { pageSlug: string }) {
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -44,32 +45,42 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
   const fetchComments = useCallback(async () => {
     const { data: commentsData } = await supabase
       .from('comments')
-      .select('*')
+      .select('*, profiles(username)')
       .eq('page_slug', pageSlug)
       .order('created_at', { ascending: false });
 
     if (!commentsData) { setLoading(false); return; }
 
     // Fetch likes counts
-    const commentIds = commentsData.map((c) => c.id);
+    const commentIds = commentsData.map((c: Record<string, unknown>) => c.id as string);
     const { data: likesData } = await supabase
       .from('comment_likes')
       .select('comment_id, user_id')
       .in('comment_id', commentIds.length ? commentIds : ['__none__']);
 
     const likesMap: Record<string, { count: number; userLiked: boolean }> = {};
-    (likesData || []).forEach((l) => {
-      if (!likesMap[l.comment_id]) likesMap[l.comment_id] = { count: 0, userLiked: false };
-      likesMap[l.comment_id].count++;
-      if (user && l.user_id === user.id) likesMap[l.comment_id].userLiked = true;
+    (likesData || []).forEach((l: Record<string, unknown>) => {
+      const cid = l.comment_id as string;
+      if (!likesMap[cid]) likesMap[cid] = { count: 0, userLiked: false };
+      likesMap[cid].count++;
+      if (user && l.user_id === user.id) likesMap[cid].userLiked = true;
     });
 
     setComments(
-      commentsData.map((c) => ({
-        ...c,
-        likes_count: likesMap[c.id]?.count || 0,
-        user_liked: likesMap[c.id]?.userLiked || false,
-      }))
+      commentsData.map((c: Record<string, unknown>) => {
+        const profileData = c.profiles as { username: string } | null;
+        return {
+          id: c.id as string,
+          page_slug: c.page_slug as string,
+          user_id: c.user_id as string,
+          user_email: c.user_email as string,
+          content: c.content as string,
+          created_at: c.created_at as string,
+          likes_count: likesMap[c.id as string]?.count || 0,
+          user_liked: likesMap[c.id as string]?.userLiked || false,
+          username: profileData?.username || null,
+        };
+      })
     );
     setLoading(false);
   }, [pageSlug, user]);
@@ -109,6 +120,8 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
     fetchComments();
   };
 
+  const currentDisplayName = profile?.username || user?.email?.split('@')[0] || '';
+
   return (
     <section className="mt-16">
       <div className="mb-8 flex items-center gap-3">
@@ -132,7 +145,7 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
             />
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
               <span className="text-xs text-muted-foreground/50">
-                {displayName(user.email || '')}
+                {currentDisplayName}
               </span>
               <button
                 type="submit"
@@ -148,7 +161,7 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
       ) : (
         <div className="mb-8 rounded-xl border border-dashed border-border/50 bg-muted/30 p-6 text-center">
           <p className="text-sm text-muted-foreground">
-            <a href="/auth/login" className="font-medium text-primary hover:underline">Melde dich an</a>
+            <a href="/login" className="font-medium text-primary hover:underline">Melde dich an</a>
             {' '}um einen Kommentar zu schreiben.
           </p>
         </div>
@@ -174,9 +187,9 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    {displayName(comment.user_email)[0]?.toUpperCase()}
+                    {displayName(comment)[0]?.toUpperCase()}
                   </div>
-                  <span className="text-sm font-medium">{displayName(comment.user_email)}</span>
+                  <span className="text-sm font-medium">{displayName(comment)}</span>
                   <span className="text-xs text-muted-foreground/50">{timeAgo(comment.created_at)}</span>
                 </div>
                 {user?.id === comment.user_id && (

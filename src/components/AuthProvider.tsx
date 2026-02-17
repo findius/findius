@@ -6,35 +6,85 @@ import { createBrowserSupabaseClient } from '@/lib/supabase-auth';
 
 const supabase = createBrowserSupabaseClient();
 
+interface Profile {
+  username: string;
+  avatar_url: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
+  profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  profile: null,
   loading: true,
   signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
 
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', userId)
+      .single();
+    return data as Profile | null;
+  };
+
+  const createProfileFromStorage = async (userId: string) => {
+    const pendingUsername = localStorage.getItem('findius_pending_username');
+    if (!pendingUsername) return null;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({ id: userId, username: pendingUsername })
+      .select('username, avatar_url')
+      .single();
+
+    if (!error && data) {
+      localStorage.removeItem('findius_pending_username');
+      return data as Profile;
+    }
+    return null;
+  };
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        const p = await fetchProfile(currentUser.id);
+        setProfile(p);
+      }
       setLoading(false);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (event === 'SIGNED_IN' && session?.user) {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (event === 'SIGNED_IN' && currentUser) {
+        let p = await fetchProfile(currentUser.id);
+        if (!p) {
+          p = await createProfileFromStorage(currentUser.id);
+        }
+        setProfile(p);
         setShowWelcome(true);
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setProfile(null);
       }
     });
 
@@ -44,10 +94,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setProfile(null);
   };
 
+  const displayName = profile?.username ?? user?.email ?? '';
+
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
       {children}
       {showWelcome && user && (
         <div
@@ -66,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               Eingeloggt als
             </p>
             <p className="mb-6 font-medium text-foreground">
-              {user.email}
+              {displayName}
             </p>
             <p className="mb-6 text-sm text-muted-foreground">
               Du kannst jetzt Vergleiche bewerten, kommentieren und deine Favoriten speichern.
