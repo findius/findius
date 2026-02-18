@@ -4,7 +4,12 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { createBrowserSupabaseClient } from '@/lib/supabase-auth';
 
-const supabase = createBrowserSupabaseClient();
+// Lazy singleton — ensures client is created in browser context only
+let _supabase: ReturnType<typeof createBrowserSupabaseClient> | null = null;
+function getSupabase() {
+  if (!_supabase) _supabase = createBrowserSupabaseClient();
+  return _supabase;
+}
 
 interface Profile {
   username: string;
@@ -34,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showWelcome, setShowWelcome] = useState(false);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from('profiles')
       .select('username, avatar_url, reputation_points, reputation_rank')
       .eq('id', userId)
@@ -46,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const pendingUsername = localStorage.getItem('findius_pending_username');
     if (!pendingUsername) return null;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('profiles')
       .insert({ id: userId, username: pendingUsername })
       .select('username, avatar_url, reputation_points, reputation_rank')
@@ -60,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    getSupabase().auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
@@ -72,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = getSupabase().auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
@@ -94,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await getSupabase().auth.signOut();
     setUser(null);
     setProfile(null);
   };
