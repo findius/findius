@@ -9,7 +9,14 @@ import ReputationBadge from './ReputationBadge';
 export default function AuthButton() {
   const { user, profile, loading, signOut } = useUser();
 
-  if (loading) return null;
+  // Show a subtle placeholder while loading instead of nothing
+  if (loading) {
+    return (
+      <div className="fixed right-16 top-4 z-[60] flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div className="h-4 w-4 animate-pulse rounded-full bg-zinc-300 dark:bg-zinc-600" />
+      </div>
+    );
+  }
 
   if (user) {
     return (

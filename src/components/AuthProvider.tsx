@@ -1,10 +1,8 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { createBrowserSupabaseClient } from '@/lib/supabase-auth';
-
-const supabase = createBrowserSupabaseClient();
 
 interface Profile {
   username: string;
@@ -32,47 +30,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
+  const supabaseRef = useRef<ReturnType<typeof createBrowserSupabaseClient> | null>(null);
 
-  const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('username, avatar_url, reputation_points, reputation_rank')
-      .eq('id', userId)
-      .single();
-    return data as Profile | null;
+  function getClient() {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createBrowserSupabaseClient();
+    }
+    return supabaseRef.current;
+  }
+
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    try {
+      const { data, error } = await getClient()
+        .from('profiles')
+        .select('username, avatar_url, reputation_points, reputation_rank')
+        .eq('id', userId)
+        .single();
+      if (error) {
+        console.error('Profile fetch error:', error);
+        return null;
+      }
+      return data as Profile;
+    } catch (err) {
+      console.error('Profile fetch failed:', err);
+      return null;
+    }
   };
 
-  const createProfileFromStorage = async (userId: string) => {
-    const pendingUsername = localStorage.getItem('findius_pending_username');
-    if (!pendingUsername) return null;
+  const createProfileFromStorage = async (userId: string): Promise<Profile | null> => {
+    try {
+      const pendingUsername = localStorage.getItem('findius_pending_username');
+      if (!pendingUsername) return null;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert({ id: userId, username: pendingUsername })
-      .select('username, avatar_url, reputation_points, reputation_rank')
-      .single();
+      const { data, error } = await getClient()
+        .from('profiles')
+        .insert({ id: userId, username: pendingUsername })
+        .select('username, avatar_url, reputation_points, reputation_rank')
+        .single();
 
-    if (!error && data) {
-      localStorage.removeItem('findius_pending_username');
-      return data as Profile;
+      if (!error && data) {
+        localStorage.removeItem('findius_pending_username');
+        return data as Profile;
+      }
+      return null;
+    } catch (err) {
+      console.error('Profile creation failed:', err);
+      return null;
     }
-    return null;
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    const client = getClient();
+
+    // Initial session check
+    client.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        const p = await fetchProfile(currentUser.id);
+        let p = await fetchProfile(currentUser.id);
+        if (!p) {
+          // Maybe profile needs to be created from pending registration
+          p = await createProfileFromStorage(currentUser.id);
+        }
         setProfile(p);
       }
       setLoading(false);
+    }).catch((err) => {
+      console.error('getSession failed:', err);
+      setLoading(false);
     });
 
+    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = client.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
@@ -83,30 +114,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setProfile(p);
         setShowWelcome(true);
+        setLoading(false);
       }
 
       if (event === 'SIGNED_OUT') {
         setProfile(null);
+        setShowWelcome(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety: ensure loading is false after 3 seconds max
+    const timeout = setTimeout(() => setLoading(false), 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await getClient().auth.signOut();
     setUser(null);
     setProfile(null);
   };
 
-  const displayName = profile?.username ?? user?.email ?? '';
+  const displayName = profile?.username ?? user?.email?.split('@')[0] ?? '';
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, signOut }}>
       {children}
       {showWelcome && user && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setShowWelcome(false)}
         >
           <div
@@ -115,16 +154,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           >
             <div className="mb-4 text-5xl">👋</div>
             <h2 className="mb-2 text-2xl font-bold text-foreground">
-              Willkommen bei findius!
+              Hey {displayName}!
             </h2>
-            <p className="mb-1 text-sm text-muted-foreground">
-              Eingeloggt als
-            </p>
-            <p className="mb-6 font-medium text-foreground">
-              {displayName}
-            </p>
             <p className="mb-6 text-sm text-muted-foreground">
-              Du kannst jetzt Vergleiche bewerten, kommentieren und deine Favoriten speichern.
+              Willkommen zurück bei findius! Du kannst jetzt Vergleiche bewerten, kommentieren und deine Favoriten speichern.
             </p>
             <button
               onClick={() => setShowWelcome(false)}
