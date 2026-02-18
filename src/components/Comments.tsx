@@ -6,7 +6,11 @@ import { useUser } from '@/components/AuthProvider';
 import { createBrowserSupabaseClient } from '@/lib/supabase-auth';
 import ReputationBadge from '@/components/ReputationBadge';
 
-const supabase = createBrowserSupabaseClient();
+let _supabase: ReturnType<typeof createBrowserSupabaseClient> | null = null;
+function getSupabase() {
+  if (!_supabase) _supabase = createBrowserSupabaseClient();
+  return _supabase;
+}
 
 interface Comment {
   id: string;
@@ -34,7 +38,7 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('de-DE');
 }
 
-function displayName(comment: Comment) {
+function getDisplayName(comment: Comment) {
   return comment.username || comment.user_email.split('@')[0];
 }
 
@@ -53,14 +57,15 @@ function CommentItem({
   onReply: (id: string) => void;
   isReply?: boolean;
 }) {
+  const name = getDisplayName(comment);
   return (
-    <div className={`group/comment rounded-xl border border-border/30 bg-card/30 p-4 backdrop-blur-sm transition-all duration-300 hover:border-border/60 hover:bg-card/50 ${isReply ? '' : ''}`}>
+    <div className="group/comment rounded-xl border border-border/30 bg-card/30 p-4 backdrop-blur-sm transition-all duration-300 hover:border-border/60 hover:bg-card/50">
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-            {displayName(comment)[0]?.toUpperCase()}
+            {name[0]?.toUpperCase()}
           </div>
-          <span className="text-sm font-medium">{displayName(comment)}</span>
+          <span className="text-sm font-medium">{name}</span>
           <ReputationBadge rank={comment.reputation_rank || 'Neuling'} />
           <span className="text-xs text-muted-foreground/50">{timeAgo(comment.created_at)}</span>
         </div>
@@ -111,64 +116,94 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchComments = useCallback(async () => {
-    const { data: commentsData } = await supabase
-      .from('comments')
-      .select('*, profiles(username, reputation_rank)')
-      .eq('page_slug', pageSlug)
-      .order('created_at', { ascending: false });
+    try {
+      // Fetch comments
+      const { data: commentsData, error: commentsError } = await getSupabase()
+        .from('comments')
+        .select('*')
+        .eq('page_slug', pageSlug)
+        .order('created_at', { ascending: false });
 
-    if (!commentsData) { setLoading(false); return; }
+      if (commentsError || !commentsData) {
+        console.error('Comments fetch error:', commentsError);
+        setLoading(false);
+        return;
+      }
 
-    const commentIds = commentsData.map((c: Record<string, unknown>) => c.id as string);
-    const { data: likesData } = await supabase
-      .from('comment_likes')
-      .select('comment_id, user_id')
-      .in('comment_id', commentIds.length ? commentIds : ['__none__']);
+      // Fetch profiles for all comment authors
+      const userIds = [...new Set(commentsData.map((c) => c.user_id))];
+      const profilesMap: Record<string, { username: string; reputation_rank: string }> = {};
 
-    const likesMap: Record<string, { count: number; userLiked: boolean }> = {};
-    (likesData || []).forEach((l: Record<string, unknown>) => {
-      const cid = l.comment_id as string;
-      if (!likesMap[cid]) likesMap[cid] = { count: 0, userLiked: false };
-      likesMap[cid].count++;
-      if (user && l.user_id === user.id) likesMap[cid].userLiked = true;
-    });
+      if (userIds.length > 0) {
+        const { data: profilesData } = await getSupabase()
+          .from('profiles')
+          .select('id, username, reputation_rank')
+          .in('id', userIds);
 
-    const allComments = commentsData.map((c: Record<string, unknown>) => {
-      const profileData = c.profiles as { username: string; reputation_rank: string } | null;
-      return {
-        id: c.id as string,
-        page_slug: c.page_slug as string,
-        user_id: c.user_id as string,
-        user_email: c.user_email as string,
-        content: c.content as string,
-        created_at: c.created_at as string,
-        parent_id: (c.parent_id as string) || null,
-        likes_count: likesMap[c.id as string]?.count || 0,
-        user_liked: likesMap[c.id as string]?.userLiked || false,
-        username: profileData?.username || null,
-        reputation_rank: profileData?.reputation_rank || 'Neuling',
-        replies: [] as Comment[],
-      };
-    });
+        (profilesData || []).forEach((p: { id: string; username: string; reputation_rank: string }) => {
+          profilesMap[p.id] = { username: p.username, reputation_rank: p.reputation_rank };
+        });
+      }
 
-    // Organize into tree (1 level deep)
-    const topLevel = allComments.filter(c => !c.parent_id);
-    const repliesMap: Record<string, Comment[]> = {};
-    allComments.filter(c => c.parent_id).forEach(c => {
-      if (!repliesMap[c.parent_id!]) repliesMap[c.parent_id!] = [];
-      repliesMap[c.parent_id!].push(c);
-    });
-    topLevel.forEach(c => {
-      c.replies = (repliesMap[c.id] || []).sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-    });
+      // Fetch likes
+      const commentIds = commentsData.map((c) => c.id);
+      const likesMap: Record<string, { count: number; userLiked: boolean }> = {};
 
-    setComments(topLevel);
-    setLoading(false);
+      if (commentIds.length > 0) {
+        const { data: likesData } = await getSupabase()
+          .from('comment_likes')
+          .select('comment_id, user_id')
+          .in('comment_id', commentIds);
+
+        (likesData || []).forEach((l: { comment_id: string; user_id: string }) => {
+          if (!likesMap[l.comment_id]) likesMap[l.comment_id] = { count: 0, userLiked: false };
+          likesMap[l.comment_id].count++;
+          if (user && l.user_id === user.id) likesMap[l.comment_id].userLiked = true;
+        });
+      }
+
+      // Build comment objects
+      const allComments: Comment[] = commentsData.map((c) => ({
+        id: c.id,
+        page_slug: c.page_slug,
+        user_id: c.user_id,
+        user_email: c.user_email,
+        content: c.content,
+        created_at: c.created_at,
+        parent_id: c.parent_id || null,
+        likes_count: likesMap[c.id]?.count || 0,
+        user_liked: likesMap[c.id]?.userLiked || false,
+        username: profilesMap[c.user_id]?.username || null,
+        reputation_rank: profilesMap[c.user_id]?.reputation_rank || 'Neuling',
+        replies: [],
+      }));
+
+      // Organize into tree (1 level deep)
+      const topLevel = allComments.filter((c) => !c.parent_id);
+      const repliesByParent: Record<string, Comment[]> = {};
+      allComments
+        .filter((c) => c.parent_id)
+        .forEach((c) => {
+          if (!repliesByParent[c.parent_id!]) repliesByParent[c.parent_id!] = [];
+          repliesByParent[c.parent_id!].push(c);
+        });
+      topLevel.forEach((c) => {
+        c.replies = (repliesByParent[c.id] || []).sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
+
+      setComments(topLevel);
+    } catch (err) {
+      console.error('Comments fetch failed:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [pageSlug, user]);
 
-  useEffect(() => { fetchComments(); }, [fetchComments]);
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   const handleSubmit = async (e: React.FormEvent, parentId?: string) => {
     e.preventDefault();
@@ -176,7 +211,7 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
     if (!user || !text.trim()) return;
     setSubmitting(true);
 
-    await supabase.from('comments').insert({
+    await getSupabase().from('comments').insert({
       page_slug: pageSlug,
       user_id: user.id,
       user_email: user.email!,
@@ -197,16 +232,16 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
   const handleLike = async (commentId: string, userLiked: boolean) => {
     if (!user) return;
     if (userLiked) {
-      await supabase.from('comment_likes').delete().match({ comment_id: commentId, user_id: user.id });
+      await getSupabase().from('comment_likes').delete().match({ comment_id: commentId, user_id: user.id });
     } else {
-      await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: user.id });
+      await getSupabase().from('comment_likes').insert({ comment_id: commentId, user_id: user.id });
     }
     fetchComments();
   };
 
   const handleDelete = async (commentId: string) => {
     if (!user) return;
-    await supabase.from('comments').delete().match({ id: commentId, user_id: user.id });
+    await getSupabase().from('comments').delete().match({ id: commentId, user_id: user.id });
     fetchComments();
   };
 
@@ -275,7 +310,6 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
                 onDelete={handleDelete}
                 onReply={(id) => setReplyTo(replyTo === id ? null : id)}
               />
-              {/* Replies */}
               {comment.replies.length > 0 && (
                 <div className="ml-6 mt-2 space-y-2 border-l-2 border-border/30 pl-4">
                   {comment.replies.map((reply) => (
@@ -291,14 +325,13 @@ export default function Comments({ pageSlug }: { pageSlug: string }) {
                   ))}
                 </div>
               )}
-              {/* Reply Form */}
               {replyTo === comment.id && user && (
                 <form onSubmit={(e) => handleSubmit(e, comment.id)} className="ml-6 mt-2 border-l-2 border-primary/30 pl-4">
                   <div className="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm transition-all focus-within:border-primary/50">
                     <textarea
                       value={replyContent}
                       onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder={`Antwort an ${displayName(comment)}...`}
+                      placeholder={`Antwort an ${getDisplayName(comment)}...`}
                       rows={2}
                       autoFocus
                       className="w-full resize-none rounded-xl bg-transparent px-4 pt-3 pb-12 text-sm outline-none placeholder:text-muted-foreground/60"

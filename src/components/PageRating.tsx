@@ -5,7 +5,8 @@ import { Star } from 'lucide-react';
 import { useUser } from '@/components/AuthProvider';
 import { createBrowserSupabaseClient } from '@/lib/supabase-auth';
 
-const supabase = createBrowserSupabaseClient();
+let _supabase: ReturnType<typeof createBrowserSupabaseClient> | null = null;
+function getSupabase() { if (!_supabase) _supabase = createBrowserSupabaseClient(); return _supabase; }
 
 export default function PageRating({ pageSlug }: { pageSlug: string }) {
   const { user } = useUser();
@@ -16,7 +17,7 @@ export default function PageRating({ pageSlug }: { pageSlug: string }) {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchRatings = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from('ratings')
       .select('score, user_id')
       .eq('page_slug', pageSlug);
@@ -41,9 +42,9 @@ export default function PageRating({ pageSlug }: { pageSlug: string }) {
     setSubmitting(true);
 
     if (userScore) {
-      await supabase.from('ratings').update({ score }).match({ page_slug: pageSlug, user_id: user.id });
+      await getSupabase().from('ratings').update({ score }).match({ page_slug: pageSlug, user_id: user.id });
     } else {
-      await supabase.from('ratings').insert({ page_slug: pageSlug, user_id: user.id, score });
+      await getSupabase().from('ratings').insert({ page_slug: pageSlug, user_id: user.id, score });
     }
 
     setUserScore(score);

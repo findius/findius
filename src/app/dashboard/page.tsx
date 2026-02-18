@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-const supabase = createBrowserSupabaseClient();
+let _supabase: ReturnType<typeof createBrowserSupabaseClient> | null = null;
+function getSupabase() { if (!_supabase) _supabase = createBrowserSupabaseClient(); return _supabase; }
 
 type Tab = 'overview' | 'referrals' | 'comments' | 'ratings' | 'balance';
 
@@ -71,10 +72,10 @@ export default function DashboardPage() {
     if (!user) return;
     const load = async () => {
       const [refRes, comRes, ratRes, payRes] = await Promise.all([
-        supabase.from('referrals').select('*').order('clicked_at', { ascending: false }),
-        supabase.from('comments').select('id, page_slug, content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('ratings').select('id, page_slug, rating, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('payouts').select('*').order('requested_at', { ascending: false }),
+        getSupabase().from('referrals').select('*').order('clicked_at', { ascending: false }),
+        getSupabase().from('comments').select('id, page_slug, content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
+        getSupabase().from('ratings').select('id, page_slug, rating, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
+        getSupabase().from('payouts').select('*').order('requested_at', { ascending: false }),
       ]);
       setReferrals((refRes.data || []) as ReferralRow[]);
       setComments((comRes.data || []) as CommentRow[]);
@@ -101,12 +102,12 @@ export default function DashboardPage() {
   const handlePayout = async () => {
     if (!canPayout || !paypalEmail.trim()) return;
     setPayoutSubmitting(true);
-    await supabase.from('payouts').insert({
+    await getSupabase().from('payouts').insert({
       user_id: user.id,
       amount: balance,
       paypal_email: paypalEmail.trim(),
     });
-    const { data } = await supabase.from('payouts').select('*').order('requested_at', { ascending: false });
+    const { data } = await getSupabase().from('payouts').select('*').order('requested_at', { ascending: false });
     setPayouts((data || []) as PayoutRow[]);
     setPaypalEmail('');
     setPayoutSubmitting(false);
