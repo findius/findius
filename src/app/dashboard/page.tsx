@@ -41,7 +41,7 @@ interface CommentRow {
 interface RatingRow {
   id: string;
   page_slug: string;
-  rating: number;
+  score: number;
   created_at: string;
 }
 
@@ -74,7 +74,7 @@ export default function DashboardPage() {
       const [refRes, comRes, ratRes, payRes] = await Promise.all([
         getSupabase().from('referrals').select('*').order('clicked_at', { ascending: false }),
         getSupabase().from('comments').select('id, page_slug, content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
-        getSupabase().from('ratings').select('id, page_slug, rating, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
+        getSupabase().from('ratings').select('id, page_slug, score, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
         getSupabase().from('payouts').select('*').order('requested_at', { ascending: false }),
       ]);
       setReferrals((refRes.data || []) as ReferralRow[]);
@@ -86,12 +86,16 @@ export default function DashboardPage() {
     load();
   }, [user]);
 
-  if (loading || !user || !profile) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // redirect happens in useEffect
   }
 
   const totalEarnings = referrals.reduce((s, r) => s + Number(r.commission_user), 0);
@@ -159,12 +163,12 @@ export default function DashboardPage() {
               <div className="rounded-xl border border-border/50 bg-card/50 p-6">
                 <div className="flex items-center gap-4">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
-                    {profile.username?.[0]?.toUpperCase() || '?'}
+                    {profile?.username?.[0]?.toUpperCase() || '?'}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">{profile.username}</h2>
+                    <h2 className="text-xl font-bold">{profile?.username}</h2>
                     <div className="mt-1 flex items-center gap-2">
-                      <ReputationBadge rank={profile.reputation_rank} points={profile.reputation_points} showPoints size="md" />
+                      <ReputationBadge rank={profile?.reputation_rank ?? "Neuling"} points={profile?.reputation_points ?? 0} showPoints size="md" />
                     </div>
                   </div>
                 </div>
@@ -244,7 +248,7 @@ export default function DashboardPage() {
                     </Link>
                     <div className="flex items-center gap-1">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-4 w-4 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/20'}`} />
+                        <Star key={i} className={`h-4 w-4 ${i < r.score ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/20'}`} />
                       ))}
                     </div>
                   </div>

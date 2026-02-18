@@ -28,7 +28,7 @@ interface CommentRow {
 interface RatingRow {
   id: string;
   page_slug: string;
-  rating: number;
+  score: number;
   created_at: string;
 }
 
@@ -53,7 +53,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
 
       const [comRes, ratRes] = await Promise.all([
         getSupabase().from('comments').select('id, page_slug, content, created_at').eq('user_id', p.id).is('parent_id', null).order('created_at', { ascending: false }).limit(20),
-        getSupabase().from('ratings').select('id, page_slug, rating, created_at').eq('user_id', p.id).order('created_at', { ascending: false }).limit(20),
+        getSupabase().from('ratings').select('id, page_slug, score, created_at').eq('user_id', p.id).order('created_at', { ascending: false }).limit(20),
       ]);
       setComments((comRes.data || []) as CommentRow[]);
       setRatings((ratRes.data || []) as RatingRow[]);
@@ -141,7 +141,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                 </Link>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className={`h-4 w-4 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/20'}`} />
+                    <Star key={i} className={`h-4 w-4 ${i < r.score ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/20'}`} />
                   ))}
                 </div>
               </div>
