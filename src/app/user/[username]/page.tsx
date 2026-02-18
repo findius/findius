@@ -6,7 +6,8 @@ import ReputationBadge from '@/components/ReputationBadge';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, MessageCircle, Star, ExternalLink } from 'lucide-react';
 
-const supabase = createBrowserSupabaseClient();
+let _supabase: ReturnType<typeof createBrowserSupabaseClient> | null = null;
+function getSupabase() { if (!_supabase) _supabase = createBrowserSupabaseClient(); return _supabase; }
 
 interface ProfileData {
   id: string;
@@ -41,7 +42,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
 
   useEffect(() => {
     const load = async () => {
-      const { data: p } = await supabase
+      const { data: p } = await getSupabase()
         .from('profiles')
         .select('id, username, avatar_url, reputation_points, reputation_rank, created_at')
         .eq('username', username)
@@ -51,8 +52,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
       setProfile(p as ProfileData);
 
       const [comRes, ratRes] = await Promise.all([
-        supabase.from('comments').select('id, page_slug, content, created_at').eq('user_id', p.id).is('parent_id', null).order('created_at', { ascending: false }).limit(20),
-        supabase.from('ratings').select('id, page_slug, rating, created_at').eq('user_id', p.id).order('created_at', { ascending: false }).limit(20),
+        getSupabase().from('comments').select('id, page_slug, content, created_at').eq('user_id', p.id).is('parent_id', null).order('created_at', { ascending: false }).limit(20),
+        getSupabase().from('ratings').select('id, page_slug, rating, created_at').eq('user_id', p.id).order('created_at', { ascending: false }).limit(20),
       ]);
       setComments((comRes.data || []) as CommentRow[]);
       setRatings((ratRes.data || []) as RatingRow[]);
